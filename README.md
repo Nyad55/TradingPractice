@@ -23,7 +23,7 @@ Remove the file header if it has one, it must be a raw data file
 
 About the app:
 
-This is a simple app, I thew it together in a short period of time
+This is a simple app, I threw it together in a short period of time
 It only runs manually with arrow keys and it simply draws the next bar
 If you want it to process Tick data and then convert that to 1min,5min,1hr,4hr,1Day timeframe data and have it draw every tick 
 then it's not much more work to upgrade it. If you want that functionality, go for it.
