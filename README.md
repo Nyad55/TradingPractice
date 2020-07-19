@@ -4,6 +4,7 @@ Simple chart rendering app with ability to load a data file bid and/or ask file 
 Software needed to run it:
 
 python
+
 pygame
 
 
