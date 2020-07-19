@@ -68,10 +68,10 @@ class Trading():
         self.doji_candle_colour = (125, 125, 125)
         self.order_colour = (20, 255, 20)
         self.stop_loss_colour = (255, 20, 20)
-        self.max_candles = 300
+        self.max_candles = 450
         self.last_candle = self.max_candles
-        self.candle_width = 4
-        self.candle_spacing = 2
+        self.candle_width = 3
+        self.candle_spacing = 1
         
         print("Starting Data Load")
         self.load_data()
@@ -209,10 +209,15 @@ class Trading():
             if float(self.bid[self.last_candle].split(',')[OHLC.LOWINDEX.value]) <= self.trade_state.stop_loss_price:
                 self.trade_state.trade_mode = TradeMode.CLOSE
                 self.trade_state.equity += self.trade_state.profit
+                if self.trade_state.trade_type == TradeType.FADE:
+                    self.stats.fade.append(self.trade_state.pips)
+                else:
+                    self.stats.trend.append(self.trade_state.pips)
                 self.trade_state.profit = 0
                 self.trade_state.order_price = 0
                 self.trade_state.position_size = 0
                 self.trade_state.stop_loss_price = 0
+                self.trade_state.pips = 0
 
         if (self.trade_state.trade_mode == TradeMode.SELL):
             self.trade_state.pips = (self.trade_state.order_price - float(self.ask[self.last_candle].split(',')[OHLC.CLOSEINDEX.value])) * 10000 
@@ -220,10 +225,15 @@ class Trading():
             if float(self.ask[self.last_candle].split(',')[OHLC.HIGHINDEX.value]) >= self.trade_state.stop_loss_price:
                 self.trade_state.trade_mode = TradeMode.CLOSE
                 self.trade_state.equity += self.trade_state.profit
+                if self.trade_state.trade_type == TradeType.FADE:
+                    self.stats.fade.append(self.trade_state.pips)
+                else:
+                    self.stats.trend.append(self.trade_state.pips)
                 self.trade_state.profit = 0
                 self.trade_state.order_price = 0
                 self.trade_state.position_size = 0
                 self.trade_state.stop_loss_price = 0
+                self.trade_state.pips = 0
 
         equity_text = self.font.render("Pre-Trade Balance: " + str("%.2f" % (self.trade_state.equity)), 1, (self.bear_candle_colour))
         self.screen.blit(equity_text, (20, 40))
@@ -310,39 +320,24 @@ class Trading():
                     self.showing_help = not self.showing_help
 
                 if event.key == pygame.K_1:
-                    self.max_candles = 300
-                    self.candle_width = 4 
-                    self.candle_spacing = 2
+                    self.max_candles = 450
+                    self.candle_width = 3
+                    self.candle_spacing = 1
 
                 if event.key == pygame.K_2:
-                    self.max_candles = 400
-                    self.candle_width = 3 
+                    self.max_candles = 600
+                    self.candle_width = 2 
                     self.candle_spacing = 1
 
                 if event.key == pygame.K_3:
-                    self.max_candles = 500
-                    self.candle_width = 2
+                    self.max_candles = 900
+                    self.candle_width = 1
                     self.candle_spacing = 1
 
                 if event.key == pygame.K_4:
-                    self.max_candles = 600
-                    self.candle_width = 1 
-                    self.candle_spacing = 1
-
-                if event.key == pygame.K_5:
-                    self.max_candles = 700
-                    self.candle_width = 1 
-                    self.candle_spacing = 1
-
-                if event.key == pygame.K_6:
-                    self.max_candles = 800
-                    self.candle_width = 1 
-                    self.candle_spacing = 1
-
-                if event.key == pygame.K_7:
-                    self.max_candles = 900
-                    self.candle_width = 1 
-                    self.candle_spacing = 1
+                    self.max_candles = 1800
+                    self.candle_width = 1
+                    self.candle_spacing = 0
   
             if event.type is QUIT:
                 self.writeConfig()
@@ -353,7 +348,7 @@ class Trading():
         text2 = "Move multiple candles: use PageUp and PageDown."
         text3 = "Buy/Sell. Tracked as Fade Trade: b/s."
         text4 = "Buy/Sell. Tracked as Trend Trade: n/d."
-        text5 = "Change Zoom: 1-9."
+        text5 = "Change Zoom: 1-4."
         text6 = "Exit: Escape."
         text1_text = self.font.render(text1, 1, (self.bear_candle_colour))
         text2_text = self.font.render(text2, 1, (self.bear_candle_colour))
