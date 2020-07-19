@@ -2,6 +2,7 @@
 Simple chart rendering app with ability to load a data file bid and/or ask file and allow trading with manual chart scrolling
 
 Software needed to run it:
+
 python
 pygame
 
