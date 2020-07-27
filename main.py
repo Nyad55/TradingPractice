@@ -1,3 +1,4 @@
+#!/usr/bin/python
 """
 App for testing out trading ideas
 """
@@ -12,33 +13,39 @@ from pygame.locals import *
 from enum import Enum
 
 class TradeMode(Enum):
+    """Enum for selecting the mode of the trade"""
     BUY = 1
     SELL = 2
-    CLOSE = 3
+    CLOSED = 3
 
 class TradeType(Enum):
+    """Enum for selecting what type of trade is placed"""
     TREND = 1
     FADE = 2
 
 class TradeState:
+    """"Keeps track of the current state"""
     equity = 100
     profit = 0
-    trade_mode = TradeMode.CLOSE
+    trade_mode = TradeMode.CLOSED
     order_price = 0
     position_size = 0
     stop_loss_price = 0
     pips = 0
     trade_type = TradeType.TREND
+    candle_number = 0
 
 class Stats:
+    """Tracks the different types of trade pip wins and losses for statistical analysis"""
     trend = []
     fade = []
 
 class OHLC(Enum):
-    OPENINDEX=1
-    HIGHINDEX=2
-    LOWINDEX=3
-    CLOSEINDEX=4
+    """Enum for picking Open High Low Close data from the bid and ask lists"""
+    OPENINDEX = 1
+    HIGHINDEX = 2
+    LOWINDEX = 3
+    CLOSEINDEX = 4
 
 DATAFOLDER = "data"
 CHARTPIPHEIGHT = 200
@@ -91,6 +98,7 @@ class Trading():
         self.showing_help = False
         self.trade_state = TradeState()
         self.stats = Stats()
+        self.history = list()
         self.readConfig()
 
 
@@ -104,11 +112,7 @@ class Trading():
             with open(filenames[0]) as ask_file:
                 self.ask = ask_file.readlines()
 
-        if len(filenames) > 1:
-            with open(filenames[1]) as bid_file:
-                self.bid = bid_file.readlines()
-        else:
-            self.bid = self.ask
+        self.bid = self.ask
         
 
     def draw_chart(self):
@@ -171,11 +175,21 @@ class Trading():
             pygame.draw.line(self.screen, self.doji_candle_colour, (xpos, candle_close_ypos), (xpos+self.candle_width, candle_close_ypos), 1)
             pygame.draw.line(self.screen, self.doji_candle_colour, (xpos, candle_open_ypos), (xpos, candle_close_ypos), 1)
         
-        if (self.trade_state.trade_mode != TradeMode.CLOSE):
+        if (self.trade_state.trade_mode != TradeMode.CLOSED):
             order_ypos = int(self.screen_height - (self.trade_state.order_price-minheight) * factor) - CHARTTOPYOFFSET
             stop_ypos = int(self.screen_height - (self.trade_state.stop_loss_price-minheight) * factor) - CHARTTOPYOFFSET
             draw_horizontal_dashed_line(self.screen, self.order_colour, (0, order_ypos), (self.screen_width - CHARTRIGHTSPACING, order_ypos))
             draw_horizontal_dashed_line(self.screen, self.stop_loss_colour, (0, stop_ypos), (self.screen_width - CHARTRIGHTSPACING, stop_ypos))
+        
+        history_offset = self.last_candle - self.max_candles
+        for hist in self.history:
+            if int(hist[2]) >= history_offset and int(hist[2]) <= self.last_candle:
+                history_open_xpos = self.candle_spacing + (self.candle_spacing + self.candle_width) * (self.max_candles - (self.last_candle - int(hist[0])))
+                history_open_trade_ypos = int(self.screen_height - (float(hist[1])-minheight) * factor) - CHARTTOPYOFFSET
+                history_close_xpos = self.candle_spacing + (self.candle_spacing + self.candle_width) * (self.max_candles - (self.last_candle - int(hist[2])))
+                history_close_trade_ypos = int(self.screen_height - (float(hist[3])-minheight) * factor) - CHARTTOPYOFFSET
+                history_colour = self.bull_candle_colour if int(hist[4]) == TradeMode.BUY.value else self.bear_candle_colour
+                pygame.draw.line(self.screen, history_colour, (history_open_xpos, history_open_trade_ypos), (history_close_xpos, history_close_trade_ypos), 1)
         
 
 
@@ -204,10 +218,11 @@ class Trading():
         self.screen.blit(last_candle_data_text, (20, 20))
 
         if (self.trade_state.trade_mode == TradeMode.BUY):
-            self.trade_state.pips = (float(self.bid[self.last_candle].split(',')[OHLC.CLOSEINDEX.value]) - self.trade_state.order_price) * 10000
+            self.trade_state.pips = 1 + (float(self.bid[self.last_candle].split(',')[OHLC.CLOSEINDEX.value]) - self.trade_state.order_price) * 10000
             self.trade_state.profit = self.trade_state.pips * self.trade_state.position_size * 100
             if float(self.bid[self.last_candle].split(',')[OHLC.LOWINDEX.value]) <= self.trade_state.stop_loss_price:
-                self.trade_state.trade_mode = TradeMode.CLOSE
+                self.history.append([self.trade_state.candle_number, self.trade_state.order_price, self.last_candle, self.trade_state.stop_loss_price, self.trade_state.trade_mode.value])
+                self.trade_state.trade_mode = TradeMode.CLOSED
                 self.trade_state.equity += self.trade_state.profit
                 if self.trade_state.trade_type == TradeType.FADE:
                     self.stats.fade.append(self.trade_state.pips)
@@ -220,10 +235,11 @@ class Trading():
                 self.trade_state.pips = 0
 
         if (self.trade_state.trade_mode == TradeMode.SELL):
-            self.trade_state.pips = (self.trade_state.order_price - float(self.ask[self.last_candle].split(',')[OHLC.CLOSEINDEX.value])) * 10000 
+            self.trade_state.pips = 1 + (self.trade_state.order_price - float(self.ask[self.last_candle].split(',')[OHLC.CLOSEINDEX.value])) * 10000 
             self.trade_state.profit = self.trade_state.pips * self.trade_state.position_size * 100
             if float(self.ask[self.last_candle].split(',')[OHLC.HIGHINDEX.value]) >= self.trade_state.stop_loss_price:
-                self.trade_state.trade_mode = TradeMode.CLOSE
+                self.history.append([self.trade_state.candle_number, self.trade_state.order_price, self.last_candle, self.trade_state.stop_loss_price, self.trade_state.trade_mode.value])
+                self.trade_state.trade_mode = TradeMode.CLOSED
                 self.trade_state.equity += self.trade_state.profit
                 if self.trade_state.trade_type == TradeType.FADE:
                     self.stats.fade.append(self.trade_state.pips)
@@ -281,30 +297,33 @@ class Trading():
                     self.last_candle += 5
 
                 if event.key == pygame.K_b or event.key == pygame.K_n:
-                    if self.trade_state.trade_mode == TradeMode.CLOSE:
+                    if self.trade_state.trade_mode == TradeMode.CLOSED:
                         self.trade_state.trade_mode = TradeMode.BUY
                     self.trade_state.order_price = float(self.ask[self.last_candle].split(',')[OHLC.CLOSEINDEX.value])
                     self.trade_state.stop_loss_price = self.trade_state.order_price - TRADERISKPIPS * 0.0001
                     self.trade_state.position_size = self.trade_state.equity * TRADERISKPERCENT / TRADERISKPIPS * 0.01
+                    self.trade_state.candle_number = self.last_candle
                     if event.key == pygame.K_b:
                         self.trade_state.trade_type = TradeType.FADE
                     else:
                         self.trade_state.trade_type = TradeType.TREND
                     
                 if event.key == pygame.K_s or event.key == pygame.K_d:
-                    if self.trade_state.trade_mode == TradeMode.CLOSE:
+                    if self.trade_state.trade_mode == TradeMode.CLOSED:
                         self.trade_state.trade_mode = TradeMode.SELL
                     self.trade_state.order_price = float(self.bid[self.last_candle].split(',')[OHLC.CLOSEINDEX.value])
                     self.trade_state.stop_loss_price = self.trade_state.order_price + TRADERISKPIPS * 0.0001
                     self.trade_state.position_size = self.trade_state.equity * TRADERISKPERCENT / TRADERISKPIPS * 0.01
+                    self.trade_state.candle_number = self.last_candle
                     if event.key == pygame.K_s:
                         self.trade_state.trade_type = TradeType.FADE
                     else:
                         self.trade_state.trade_type = TradeType.TREND
                     
                 if event.key == pygame.K_c:
-                    if self.trade_state.trade_mode != TradeMode.CLOSE:
-                        self.trade_state.trade_mode = TradeMode.CLOSE
+                    if self.trade_state.trade_mode != TradeMode.CLOSED:
+                        self.history.append([self.trade_state.candle_number, self.trade_state.order_price, self.last_candle, self.ask[self.last_candle].split(',')[OHLC.CLOSEINDEX.value], self.trade_state.trade_mode.value])
+                        self.trade_state.trade_mode = TradeMode.CLOSED
                         self.trade_state.equity += self.trade_state.profit
                         if self.trade_state.trade_type == TradeType.FADE:
                             self.stats.fade.append(self.trade_state.pips)
@@ -385,6 +404,11 @@ class Trading():
                     if x != "":
                         self.stats.trend.append(x)
 
+            with open("history.txt") as config_file:
+                data = config_file.readlines()
+                self.history = list(x.rstrip().split() for x in data if x != "")
+
+
     def writeConfig(self):
         with open("config.txt", "w") as config_file:
             config_file.write(str(self.trade_state.equity)+"\n")
@@ -397,6 +421,10 @@ class Trading():
         with open("trend.txt", "w") as config_file:
             for x in self.stats.trend:
                 config_file.write(str("%.1f" % float(x))+"\n")
+        
+        with open("history.txt", "w") as config_file:
+            for x in self.history:
+                config_file.write("{0} {1} {2} {3} {4}\n".format(x[0], x[1], x[2], x[3], x[4]))
 
 
 if __name__ == "__main__":
