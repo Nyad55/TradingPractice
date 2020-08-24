@@ -53,7 +53,7 @@ CHARTTOPYOFFSET = 150
 CHARTRIGHTSPACING = 60
 
 TRADERISKPERCENT = 0.01
-TRADERISKPIPS = 20
+TRADERISKPIPS = 30
     
 def draw_horizontal_dashed_line(surf, colour, start_pos, end_pos, width=1, dash_length=10):
     length = end_pos[0] - start_pos[0]
@@ -79,13 +79,16 @@ class Trading():
         self.last_candle = self.max_candles
         self.candle_width = 3
         self.candle_spacing = 1
+        self.mouse_move_toggle = False
+        self.mouse_move_threshold = 3
+        self.mouse_move_build_up = 0
         
         print("Starting Data Load")
         self.load_data()
         print("Finished Loading Data")
 
         pygame.init()
-        self.screen = pygame.display.set_mode(size=(1920, 1080), flags=pygame.DOUBLEBUF | pygame.HWSURFACE | pygame.RESIZABLE | pygame.FULLSCREEN, depth=32, display=0)
+        self.screen = pygame.display.set_mode(size=(1920, 1080), flags=pygame.DOUBLEBUF | pygame.HWSURFACE | pygame.RESIZABLE, depth=32, display=0)
 
         pygame.display.set_caption("Trading Practice App")
         pygame.font.init() # you have to call this at the start, 
@@ -357,7 +360,25 @@ class Trading():
                     self.max_candles = 1800
                     self.candle_width = 1
                     self.candle_spacing = 0
+
+                if event.key == pygame.K_m:
+                    self.mouse_move_toggle = not self.mouse_move_toggle
   
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.mouse_move_toggle = not self.mouse_move_toggle
+
+            if self.mouse_move_toggle and event.type == pygame.MOUSEMOTION:# and pygame.mouse.get_pressed()[0]:
+                self.mouse_move_build_up += 1
+                if self.mouse_move_build_up > self.mouse_move_threshold:
+                    move = 0
+                    rel = pygame.mouse.get_rel()[0]
+                    if rel > 0:
+                        move = 1
+                    elif rel < 0:
+                        move = -1 
+                    self.last_candle += move
+                    self.mouse_move_build_up = 0
+                
             if event.type is QUIT:
                 self.writeConfig()
                 self.done = True
