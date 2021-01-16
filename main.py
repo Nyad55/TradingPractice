@@ -42,9 +42,6 @@ class Trading():
         self.last_candle = self.max_candles
         self.candle_width = 3
         self.candle_spacing = 1
-        self.mouse_move_toggle = False
-        self.mouse_move_threshold = 3
-        self.mouse_move_build_up = 0
         self.chart_pip_height = 200
         self.load_data()
         pygame.init()
@@ -288,17 +285,14 @@ class Trading():
                     self.mouse_move_toggle = not self.mouse_move_toggle
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.mouse_move_toggle = not self.mouse_move_toggle
-            if self.mouse_move_toggle and event.type == pygame.MOUSEMOTION:# and pygame.mouse.get_pressed()[0]:
-                self.mouse_move_build_up += 1
-                if self.mouse_move_build_up > self.mouse_move_threshold:
-                    move = 0
-                    rel = pygame.mouse.get_rel()[0]
-                    if rel > 0:
-                        move = 1
-                    elif rel < 0:
-                        move = -1 
-                    self.last_candle += move
-                    self.mouse_move_build_up = 0
+            if event.type == pygame.MOUSEMOTION and pygame.mouse.get_pressed()[0]:
+                rel = pygame.mouse.get_rel()[0]
+                move=0
+                if rel > 0:
+                    move = -15
+                elif rel < 0:
+                    move = +15 
+                self.last_candle += move
             if event.type is QUIT:
                 self.writeConfig()
                 self.done = True
