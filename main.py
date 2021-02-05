@@ -63,10 +63,23 @@ class Trading():
         """
         Reads the data from the files
         """
+        def get_filename(file_list, file_search):
+            for filename in file_list:
+                if file_search in filename.lower():
+                    return filename
+
         filenames = glob.glob(os.path.join('.', DATAFOLDER, "*"))
         if len(filenames) > 0:
-            with open(filenames[0]) as ask_file:
+            hourly_file = get_filename(filenames, 'hourly')
+            four_hourly_file = get_filename(filenames, '4 hours')
+            daily_file = get_filename(filenames, 'daily')
+            with open(hourly_file) as ask_file:
                 self.ask = ask_file.readlines()
+            tick_file = get_filename(filenames, 'tick')
+            # if tick_file:
+            #     with open(tick_file) as tick_data:
+            #         self.tick = tick_data.readlines()
+            # print('loaded')
         self.bid = self.ask
 
     def draw_chart(self):
@@ -281,10 +294,6 @@ class Trading():
                     self.max_candles = 1800
                     self.candle_width = 1
                     self.candle_spacing = 0
-                if event.key == pygame.K_m:
-                    self.mouse_move_toggle = not self.mouse_move_toggle
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                self.mouse_move_toggle = not self.mouse_move_toggle
             if event.type == pygame.MOUSEMOTION and pygame.mouse.get_pressed()[0]:
                 rel = pygame.mouse.get_rel()[0]
                 move=0
