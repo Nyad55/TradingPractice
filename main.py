@@ -13,11 +13,10 @@ from pygame.locals import *
 from enums import TradeMode, TradeType, TradeState, Stats, OHLC
 
 
-DATAFOLDER = "data"
 CHARTTOPYOFFSET = 150
 CHARTRIGHTSPACING = 60
 TRADERISKPERCENT = 0.01
-TRADERISKPIPS = 30
+TRADERISKPIPS = 50
     
 def draw_horizontal_dashed_line(surf, colour, start_pos, end_pos, width=1, dash_length=10):
     length = end_pos[0] - start_pos[0]
@@ -32,6 +31,16 @@ class Trading():
     Trading Practice App
     """
     def __init__(self):
+        self.data_dir = 'data'
+        if not os.path.exists(self.data_dir):
+            os.mkdir(self.data_dir)
+        self.settings_dir = 'settings'
+        if not os.path.exists(self.settings_dir):
+            os.mkdir(self.settings_dir)
+        self.config_file = os.path.join(self.settings_dir, 'config.txt')
+        self.fade_file = os.path.join(self.settings_dir, 'fade.txt')
+        self.trend_file = os.path.join(self.settings_dir, 'trend.txt')
+        self.history_file = os.path.join(self.settings_dir, 'history.txt')
         self.done = False
         self.bull_candle_colour = (20, 255, 20)
         self.bear_candle_colour = (255, 20, 20)
@@ -42,7 +51,7 @@ class Trading():
         self.last_candle = self.max_candles
         self.candle_width = 3
         self.candle_spacing = 1
-        self.chart_pip_height = 200
+        self.chart_pip_height = 800
         self.load_data()
         pygame.init()
         self.screen = pygame.display.set_mode(size=(1920, 1080), flags=pygame.DOUBLEBUF | pygame.HWSURFACE | pygame.RESIZABLE, depth=32, display=0)
@@ -68,7 +77,7 @@ class Trading():
                 if file_search in filename.lower():
                     return filename
 
-        filenames = glob.glob(os.path.join('.', DATAFOLDER, "*"))
+        filenames = glob.glob(os.path.join('.', self.data_dir, "*"))
         if len(filenames) > 0:
             hourly_file = get_filename(filenames, 'hourly')
             four_hourly_file = get_filename(filenames, '4 hours')
@@ -99,12 +108,14 @@ class Trading():
             if low < minheight:
                 minheight = low
         factor = (self.screen_height - CHARTTOPYOFFSET) / self.chart_pip_height * 10000
+        #Draw Price Lines
         for x in range(0, self.chart_pip_height, 20):
             val = float("%.3f" % maxheight) - x*0.0001
             line_ypos = int(self.screen_height - (val-minheight) * factor) - CHARTTOPYOFFSET
             pygame.draw.line(self.screen, self.doji_candle_colour, (0, line_ypos), (self.screen_width - CHARTRIGHTSPACING - 5, line_ypos), 1)
             text = self.font.render(str(val).ljust(7, '0'), 1, (self.bear_candle_colour))
             self.screen.blit(text, (self.screen_width - CHARTRIGHTSPACING, line_ypos - 13))
+        #Draw Chart Data
         for x in range(0, self.max_candles):
             offset = self.last_candle-x
             xpos = self.candle_spacing + (self.candle_spacing + self.candle_width) * (self.max_candles-x)
@@ -327,41 +338,44 @@ class Trading():
         self.screen.blit(text6_text, (700, 185))
     
     def readConfig(self):
-        if os.path.exists("config.txt"):
-            with open("config.txt") as config_file:
+        if os.path.exists(self.config_file):
+            with open(self.config_file) as config_file:
                 data = config_file.readlines()
                 if len(data) == 2:
                     self.trade_state.equity = float(data[0].rstrip())
                     self.last_candle = int(data[1].rstrip())
-            with open("fade.txt") as config_file:
-                data = config_file.readlines()
-                for x in data:
-                    x = x.rstrip()
-                    if x != "":
-                        self.stats.fade.append(x)
-            with open("trend.txt") as config_file:
-                data = config_file.readlines()
-                for x in data:
-                    x = x.rstrip()
-                    if x != "":
-                        self.stats.trend.append(x)
-            with open("history.txt") as config_file:
-                data = config_file.readlines()
-                self.history = list(x.rstrip().split() for x in data if x != "")
+            if os.path.exists(self.fade_file):
+                with open(self.fade_file) as config_file:
+                    data = config_file.readlines()
+                    for x in data:
+                        x = x.rstrip()
+                        if x != "":
+                            self.stats.fade.append(x)
+            if os.path.exists(self.trend_file):
+                with open(self.trend_file) as config_file:
+                    data = config_file.readlines()
+                    for x in data:
+                        x = x.rstrip()
+                        if x != "":
+                            self.stats.trend.append(x)
+            if os.path.exists(self.history_file):
+                with open(self.history_file) as config_file:
+                    data = config_file.readlines()
+                    self.history = list(x.rstrip().split() for x in data if x != "")
 
     def writeConfig(self):
-        with open("config.txt", "w") as config_file:
+        with open(self.config_file, "w") as config_file:
             config_file.write(str(self.trade_state.equity)+"\n")
             config_file.write(str(self.last_candle)+"\n")
-        with open("fade.txt", "w") as config_file:
+        with open(self.fade_file, "w") as fade_file:
             for x in self.stats.fade:
-                config_file.write(str("%.1f" % float(x))+"\n")
-        with open("trend.txt", "w") as config_file:
+                fade_file.write(str("%.1f" % float(x))+"\n")
+        with open(self.trend_file, "w") as trend_file:
             for x in self.stats.trend:
-                config_file.write(str("%.1f" % float(x))+"\n")
-        with open("history.txt", "w") as config_file:
+                trend_file.write(str("%.1f" % float(x))+"\n")
+        with open(self.history_file, "w") as history_file:
             for x in self.history:
-                config_file.write("{0} {1} {2} {3} {4}\n".format(x[0], x[1], x[2], x[3], x[4]))
+                history_file.write("{0} {1} {2} {3} {4}\n".format(x[0], x[1], x[2], x[3], x[4]))
 
 
 if __name__ == "__main__":

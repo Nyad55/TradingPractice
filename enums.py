@@ -14,7 +14,7 @@ class TradeType(Enum):
 
 class TradeState:
     """"Keeps track of the current state"""
-    equity = 100
+    equity = 10000
     profit = 0
     trade_mode = TradeMode.CLOSED
     order_price = 0
