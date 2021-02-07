@@ -16,7 +16,7 @@ from enums import TradeMode, TradeType, TradeState, Stats, OHLC
 CHARTTOPYOFFSET = 150
 CHARTRIGHTSPACING = 60
 TRADERISKPERCENT = 0.01
-TRADERISKPIPS = 50
+TRADERISKPIPS = 80
     
 def draw_horizontal_dashed_line(surf, colour, start_pos, end_pos, width=1, dash_length=10):
     length = end_pos[0] - start_pos[0]
@@ -57,7 +57,8 @@ class Trading():
         self.screen = pygame.display.set_mode(size=(1920, 1080), flags=pygame.DOUBLEBUF | pygame.HWSURFACE | pygame.RESIZABLE, depth=32, display=0)
         pygame.display.set_caption("Trading Practice App")
         pygame.font.init()
-        self.font = pygame.font.SysFont('Comic Sans MS', 15)
+        self.font = pygame.font.SysFont('Comic Sans MS', 20)
+        self.price_level_font = pygame.font.SysFont('Comic Sans MS', 15)
         self.start_time = datetime.datetime.now()
         self.screen_width, self.screen_height = pygame.display.get_surface().get_size()
         self.first_run = True
@@ -113,7 +114,7 @@ class Trading():
             val = float("%.3f" % maxheight) - x*0.0001
             line_ypos = int(self.screen_height - (val-minheight) * factor) - CHARTTOPYOFFSET
             pygame.draw.line(self.screen, self.doji_candle_colour, (0, line_ypos), (self.screen_width - CHARTRIGHTSPACING - 5, line_ypos), 1)
-            text = self.font.render(str(val).ljust(7, '0'), 1, (self.bear_candle_colour))
+            text = self.price_level_font.render(str(val).ljust(7, '0'), 1, (self.bear_candle_colour))
             self.screen.blit(text, (self.screen_width - CHARTRIGHTSPACING, line_ypos - 13))
         #Draw Chart Data
         for x in range(0, self.max_candles):
@@ -196,19 +197,19 @@ class Trading():
         last_candle_data_text = self.font.render(self.bid[self.last_candle], 1, (self.bear_candle_colour))
         self.screen.blit(last_candle_data_text, (20, 20))
         equity_text = self.font.render("Pre-Trade Balance: " + str("%.2f" % (self.trade_state.equity)), 1, (self.bear_candle_colour))
-        self.screen.blit(equity_text, (20, 40))
+        self.screen.blit(equity_text, (20, 45))
         equity_text = self.font.render("Equity: " + str("%.2f" % (self.trade_state.equity + self.trade_state.profit)), 1, (self.bear_candle_colour))
-        self.screen.blit(equity_text, (20, 60))
+        self.screen.blit(equity_text, (20, 70))
         profit_text = self.font.render("Profit: " + str("%.2f" % self.trade_state.profit), 1, (self.bear_candle_colour))
-        self.screen.blit(profit_text, (20, 80))
+        self.screen.blit(profit_text, (20, 95))
         trade_mode_text = self.font.render("Trade Mode: " + str(self.trade_state.trade_mode.name), 1, (self.bear_candle_colour))
-        self.screen.blit(trade_mode_text, (20, 100))
+        self.screen.blit(trade_mode_text, (20, 120))
         pips_text = self.font.render("Pips: " + str("%.1f" % self.trade_state.pips), 1, (self.bear_candle_colour))
-        self.screen.blit(pips_text, (20, 120))
+        self.screen.blit(pips_text, (20, 145))
         position_size_text = self.font.render("Position Size: " + str("%.4f" % self.trade_state.position_size), 1, (self.bear_candle_colour))
-        self.screen.blit(position_size_text, (20, 140))
+        self.screen.blit(position_size_text, (20, 170))
         help_text = self.font.render("Press F1 to toggle help info ", 1, (self.bear_candle_colour))
-        self.screen.blit(help_text, (20, 160))
+        self.screen.blit(help_text, (20, 195))
 
     def buy(self, trade_type):
         if self.trade_state.trade_mode == TradeMode.CLOSED:
